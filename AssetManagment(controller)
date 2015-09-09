@@ -1,0 +1,1127 @@
+package com.assets;
+
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Iterator;
+import java.util.List;
+
+import javax.servlet.http.HttpSession;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.SessionAttributes;
+import org.springframework.web.bind.support.SessionStatus;
+import org.springframework.web.servlet.ModelAndView;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import com.assets.database.Operations;
+import com.assets.mail.MailSend;
+import com.assets.model.AssetAllocation;
+import com.assets.model.AssetMaster;
+import com.assets.model.AssetSWInstallation;
+import com.assets.model.InvoiceMaster;
+import com.assets.model.LoginDetails;
+import com.assets.model.SWLicenseMaster;
+
+
+
+@Controller
+@SessionAttributes("session")
+public class AssetManagment 
+{
+	
+	@Autowired
+	Operations opr;
+	
+	@Autowired
+	MailSend  ms;
+	
+	
+	
+	
+	
+	
+	
+			/* To check the login credentials are Valid or not...from here control will go to operations impls class  */
+	
+	@RequestMapping(value="login",method=RequestMethod.POST)
+	public ModelAndView login(@RequestParam("username")String username,@RequestParam("password")String password)
+	{
+		System.out.println("comming to login...");
+		ModelAndView mv=new ModelAndView();
+		List<LoginDetails> var=opr.loginCheck(username,password); 
+	  
+		if(!var.isEmpty())
+			{
+			   mv.setViewName("Admin_Dashboard");
+			   
+			   for(LoginDetails u1:var)
+				{   
+				   mv.addObject("session", u1);
+				  
+				}	 
+				
+			   
+			 }
+			else
+			{
+			  mv.setViewName("Admin_login");
+			  mv.addObject("msg", "Invalid User"); 
+		 	  mv.addObject("username",username);
+		 	  mv.addObject("password",password);
+			}
+	
+		return mv;
+	 }
+	
+	 
+	  @RequestMapping(value="Admin_login.jsp",method=RequestMethod.GET)
+	  public ModelAndView Logout(@ModelAttribute("session")LoginDetails log,SessionStatus status,HttpSession se)
+	  {
+		  ModelAndView mv=new ModelAndView("Admin_login");
+		  System.out.println(se.getAttributeNames().toString());
+		  System.out.println("comming to logout");
+		  status.setComplete();
+		  
+		  
+		  return mv;
+	  }
+	
+	  
+	  @RequestMapping(value="Admin_Dashboard.jsp",method=RequestMethod.GET)
+	  public ModelAndView AdminDashboard()
+	  {
+		  ModelAndView mv=new ModelAndView("Admin_Dashboard");
+		  
+		  
+		  return mv;
+	  }
+	  
+	@RequestMapping(value="change.jsp",method=RequestMethod.GET)
+	public ModelAndView changePassword()
+	{
+		ModelAndView mv=new ModelAndView("change");
+		
+		return mv;
+	}
+	
+
+	@RequestMapping(value="changepassword",method=RequestMethod.POST)
+	public ModelAndView ChangePasswordInDatabase(@RequestParam("username")String username,@RequestParam("email")String email,@RequestParam("password")String password)
+	{
+		ModelAndView mv=new ModelAndView("change");
+	
+	boolean result=opr.checkChangePasswordDetails(username, password, email);
+	if(result == true)
+	{
+		mv.addObject("msg", "Successfully Updated");
+	}
+	else
+	{
+		mv.addObject("msg", "check username or email");
+		mv.addObject("username", username);
+		mv.addObject("email", email);
+	}
+		
+		return mv;
+	}
+	
+	
+	
+		@RequestMapping(value="checkusername",method=RequestMethod.GET)
+		public @ResponseBody
+		 String checkusername(@RequestParam("username")String username)
+		{
+			System.out.println("cooming to checkusername");
+			String userexist=opr.checkuser(username);
+			System.out.println(userexist);
+			if(userexist.equals("NoResult"))
+			{
+				/*return new ResponseEntity<popbox>("your message",HttpStatus.OK);*/
+				return "one";
+			}
+			else
+			{
+					ms.sendMail(userexist);
+				
+				return "zero";
+			}
+		
+		}
+	
+	
+	@RequestMapping(value="popbox")
+	public String GoToPopBox()
+	{
+		return "popbox";
+	}
+	
+//-----------------------------------------LookUP Details--------------------------------------------------------------------------------------------//	
+ @RequestMapping(value="companylookup",method=RequestMethod.GET)
+  public @ResponseBody
+  String companylookupdata(String companyId ,String companydesc)
+  {
+	 System.out.println(companyId+" this data which comming"+companydesc);
+	 String str=opr.Lookup1(companyId, companydesc);
+	 if(str.equals("true"))
+	 {
+		 return "true";
+	 }
+	 else
+	 {
+		 return "false";
+	 }
+  }
+	
+	
+@RequestMapping(value="statuslookup",method=RequestMethod.GET)
+public @ResponseBody
+String statuslookup(String assetid ,String assetdesc)
+{
+	
+	 String str=opr.Lookup2(assetid,assetdesc);
+	 if(str.equals("true"))
+	 {
+		 return "true";
+	 }
+	 else
+	 {
+		 return "false";
+	 }
+}	
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+//--------------------------------JTable Data May be check once-----------------------------------------------------------------------------------//
+
+
+@RequestMapping(value="Assetdata",method=RequestMethod.GET)
+public ModelAndView  assetdataGo()
+{
+	ModelAndView mv=new ModelAndView("AssetData");
+	//mv.addObject("SpecificTable", opr.callSpecifictable());
+	return mv;
+}
+
+
+@RequestMapping(value="Asset/AssetMaster",method=RequestMethod.POST)
+public @ResponseBody String assetmaster(int jtStartIndex , int jtPageSize,String jtSorting,String name,String FileType,String date) throws JSONException, ParseException 
+{	
+	System.out.println("comming from ajax call ");
+	System.out.println(jtStartIndex+"startIndex"+jtPageSize+"pagesize"+jtSorting+"jtsorting"+name+"Name"+FileType+"Type");
+	int Assetcount = opr.totalAssetCount(name,FileType,date);	
+	
+	JSONArray userArray = new JSONArray();
+	// if u require sorting then you can add another column
+    for (AssetMaster user : opr.AssetMaster1(jtStartIndex, jtPageSize, jtSorting,name,FileType,date)) 
+    {
+    	DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
+  	   	
+  	  	
+  	  	JSONObject userJSON = new JSONObject(); 
+        userJSON.put("assetId", user.getAssetId());
+        userJSON.put("invoiceId", user.getInvoiceId());
+        
+       //  String dateInString =user.getAssetPurchaseDate();
+       //  Date date1 = dateFormat.parse(dateInString);
+      //   userJSON.put("assetPurchaseDate", dateFormat.format(date1));
+           userJSON.put("assetPurchaseDate", user.getAssetPurchaseDate());	
+         
+         
+     //    String dateInString1 = (String)user.getAssetInsuranceDate();
+     //    Date date2 = dateFormat.parse(dateInString1);
+     //    userJSON.put("assetInsuranceDate", dateFormat.format(date2));
+           
+           userJSON.put("assetInsuranceDate", user.getAssetInsuranceDate());
+           userJSON.put("companyId", user.getCompanyId());
+           userJSON.put("assetWarranty", user.getAssetWarranty());
+           userJSON.put("assetAMCVendor", user.getAssetAMCVendor());
+           userJSON.put("assetModel", user.getAssetModel());
+           userJSON.put("assetSerialNumber", user.getAssetSerialNumber());
+           userJSON.put("assetStatus", user.getAssetStatus());
+        userArray.put(userJSON);
+    }
+    String s="{\"Result\":\"OK\",\"Records\":"+userArray+",\"TotalRecordCount\":"+Assetcount+"}";
+   
+ 
+   return s;
+}
+
+
+@RequestMapping(value="Asset/UpdateAssetMaster",headers="Accept=application/json")
+public @ResponseBody
+String update(AssetMaster asset)
+{	
+	 
+	 boolean a1=opr.updateAssetMaster(asset);
+	 
+	 /*String s="{\"Result\":\"OK\"}";*/
+	 String s="{\"Result\":\"OK\",\"Record\":"+a1+"}";
+	return s;
+	 
+}
+
+@RequestMapping(value="Asset/childAsset",method=RequestMethod.POST)
+public @ResponseBody String assetmaster(String assetId) throws JSONException 
+{
+		
+	
+	JSONArray userArray = new JSONArray();
+	// if u require sorting then you can add another column
+    for (AssetMaster user : opr.childAsset1(assetId)) 
+    {
+    	
+  	   	JSONObject userJSON = new JSONObject(); 
+        userJSON.put("assetMotherBoardType", user.getAssetMotherBoardType());
+        userJSON.put("assetCPU", user.getAssetCPU());
+        userJSON.put("assetRAM", user.getAssetRAM());
+        userJSON.put("assetHDD", user.getAssetHDD());
+        userJSON.put("assetOS", user.getAssetOS());
+        userJSON.put("assetOSLicenseType", user.getAssetOSLicenseType());
+        userJSON.put("assetOSLicenseNumber", user.getAssetOSLicenseNumber());
+        userJSON.put("assetOSLicenseKey", user.getAssetOSLicenseKey());
+        userJSON.put("assetGraphicsCard", user.getAssetGraphicsCard());
+        userArray.put(userJSON);
+       
+        
+    }
+   		
+    	String s="{\"Result\":\"OK\",\"Records\":"+userArray+"}";
+   
+  
+   return s;
+}
+
+@RequestMapping(value="Asset/childAsset2",method=RequestMethod.POST)
+public @ResponseBody String Allocation(String assetId) throws JSONException 
+{
+		
+	
+	JSONArray userArray = new JSONArray();
+	// if u require sorting then you can add another column
+    for (com.assets.model.AssetAllocation user : opr.childAsset2(assetId)) 
+    {
+    	
+    	JSONObject userJSON = new JSONObject(); 
+        userJSON.put("employeeId", user.getEmployeeId());
+        userJSON.put("deskLocation", user.getDeskLocation());
+        userJSON.put("userName", user.getUserName());
+        userJSON.put("projectName", user.getProjectName());
+        userJSON.put("reportingManager", user.getReportingManager());
+        userJSON.put("userProfileId", user.getUserProfileId());
+        userJSON.put("hostName", user.getHostName());
+        userArray.put(userJSON);
+       
+    }
+   		
+    	String s="{\"Result\":\"OK\",\"Records\":"+userArray+"}";
+   
+  
+   return s;
+}
+
+@RequestMapping(value="Asset/updatechildAsset",headers="Accept=application/json")
+public @ResponseBody
+String update(AssetMaster asset,String assetId)
+{	
+	 boolean a1=opr.updatechildAssetMaster(asset,assetId);
+	 
+	
+	 String s="{\"Result\":\"OK\",\"Record\":"+a1+"}";
+	return s;
+		
+}
+
+@RequestMapping(value="Asset/deletec2",headers="Accept=application/json")
+public @ResponseBody
+String deletechild2(long employeeId)
+{	
+	 System.out.println("comming");
+	 boolean a1=opr.deletechild2(employeeId);
+	 String s="{\"Result\":\"OK\",\"Record\":"+a1+"}";
+	
+	 return s;
+}
+
+@RequestMapping(value="Asset/Updatec2",headers="Accept=application/json")
+public @ResponseBody
+  String Updatechild2(com.assets.model.AssetAllocation al,String assetId)
+  {
+	 boolean a1=opr.updatechild2(al,assetId);
+	 String s="{\"Result\":\"OK\",\"Record\":"+a1+"}";
+	 
+	 return s;
+  }
+
+
+
+@RequestMapping(value="AssetJtable",method=RequestMethod.GET)
+public @ResponseBody
+String AssetJtable()
+{
+	return "AssetJtable";
+}		
+	
+//19-08-2015
+
+@RequestMapping(value="checkAssetId",method=RequestMethod.GET)
+public @ResponseBody
+  String checkAssets(String assetId) throws JSONException
+  {
+	
+		JSONArray userArray = new JSONArray();
+	// if u require sorting then you can add another column
+    for (AssetMaster user : opr.checkAssetd(assetId)) 
+    {
+    	
+  	   	JSONObject userJSON = new JSONObject(); 
+  	   	userJSON.put("assetId", user.getAssetId());
+  	   	userJSON.put("invoiceId", user.getInvoiceId());
+  	   	userJSON.put("companyId", user.getCompanyId());
+  	   	userJSON.put("assetWarranty", user.getAssetWarranty());
+  	   	userJSON.put("assetPurchaseDate", user.getAssetPurchaseDate());
+  	   	userJSON.put("assetAMCVendor", user.getAssetAMCVendor());
+  	   	userJSON.put("assetModel", user.getAssetModel());
+  	   	userJSON.put("assetSerialNumber", user.getAssetSerialNumber());
+  	   	userJSON.put("assetInsuranceDate", user.getAssetInsuranceDate());
+        userJSON.put("assetMotherBoardType", user.getAssetMotherBoardType());
+        userJSON.put("assetCPU", user.getAssetCPU());
+        userJSON.put("assetRAM", user.getAssetRAM());
+        userJSON.put("assetHDD", user.getAssetHDD());
+        userJSON.put("assetOS", user.getAssetOS());
+        userJSON.put("assetOSLicenseType", user.getAssetOSLicenseType());
+        userJSON.put("assetOSLicenseNumber", user.getAssetOSLicenseNumber());
+        userJSON.put("assetOSLicenseKey", user.getAssetOSLicenseKey());
+        userJSON.put("assetGraphicsCard", user.getAssetGraphicsCard());
+        userArray.put(userJSON);
+       
+        
+    }
+   		
+    	String s="{\"Result\":\"OK\",\"Records\":"+userArray+"}";
+    	
+    	return s;
+	  
+  }
+	
+	
+
+@RequestMapping(value="checkAssetAllocation",method=RequestMethod.GET)
+public @ResponseBody
+  String checkAssetAllocation1(String assetId) throws JSONException
+  {
+	
+		JSONArray userArray = new JSONArray();
+	// if u require sorting then you can add another column
+    for (com.assets.model.AssetAllocation user : opr.checkAssetallocation(assetId)) 
+    {
+    	
+  	   	JSONObject userJSON = new JSONObject(); 
+  	   	userJSON.put("assetId1", user.getAssetId1());
+  		userJSON.put("employeeId", user.getEmployeeId());
+  		userJSON.put("userName", user.getUserName());
+  		userJSON.put("userProfileId", user.getUserProfileId());
+  		userJSON.put("projectName", user.getProjectName());
+  		userJSON.put("reportingManager", user.getReportingManager());
+  		userJSON.put("deskLocation", user.getDeskLocation());
+  		userJSON.put("hostName", user.getHostName());
+        userArray.put(userJSON);
+       
+        
+    }
+   		
+    	String s="{\"Result\":\"OK\",\"Records\":"+userArray+"}";
+    	
+    	return s;
+	  
+  }
+
+		
+		@RequestMapping(value="checkInvoiceId",method=RequestMethod.GET)
+		public @ResponseBody
+		  String checkInvoiceNo(Long invoiceId) throws JSONException
+		  {
+			
+				JSONArray userArray = new JSONArray();
+			// if u require sorting then you can add another column
+		    for (InvoiceMaster user : opr.checkinvoiceno(invoiceId)) 
+		    {
+		    	
+		  	   	JSONObject userJSON = new JSONObject(); 
+		  	   	userJSON.put("invoiceNo", user.getInvoiceNo());
+		  		userJSON.put("companyId", user.getCompanyId());
+		  		userJSON.put("invoiceAmount", user.getInvoiceAmount());
+		  		userJSON.put("invoiceDate", user.getInvoiceDate());
+		  		userJSON.put("invoiceStatus", user.getInvoiceStatus());
+		        userArray.put(userJSON);
+		       
+		        
+		    }
+		   		
+		    	String s="{\"Result\":\"OK\",\"Records\":"+userArray+"}";
+		    	
+		    	return s;
+			  
+		  }
+		
+//------------------------------AssetEntry All controller-------------------------------------------------------------------------------------//
+
+		
+@RequestMapping(value="SubmitData",method=RequestMethod.POST)	
+public ModelAndView submitDataMethod(@ModelAttribute("list1")AssetMaster re,BindingResult result)
+{
+	ModelAndView mv=new ModelAndView("AssetEntry");
+	System.out.println(re.getAssetId());
+	
+	
+	String s=opr.SaveData(re);
+	if(s.equals("error"))
+	{
+		mv.addObject("msg", "invalid Data");
+	}
+	else if(s.equals("errorP"))
+	{
+		mv.addObject("msg", "AssetId already exist");
+	}
+	else if(s.equals("success"))
+	{
+		mv.addObject("msg", "Data is Submitted");
+	}
+	else if(s.equals("errorA"))
+	{
+		mv.addObject("msg", "Invalid AssetId");
+	}
+	mv.addObject("re", re);
+	mv.addObject("company",opr.CompanyNames());
+	mv.addObject("license",opr.licenseTypes());
+	
+	
+	
+	return mv;
+}
+		
+		
+		@RequestMapping(value="CreateAsset",method=RequestMethod.GET)
+		public ModelAndView GoToAssetEntryPage()
+		{
+			
+			
+			ModelAndView mv=new ModelAndView("AssetEntry");
+			
+			mv.addObject("company",opr.CompanyNames());
+			mv.addObject("license",opr.licenseTypes());
+			mv.addObject("check",  0);
+			mv.addObject("button", 0);
+			
+			
+			return mv;
+		}
+		@RequestMapping(value="UpdateAsset",method=RequestMethod.GET)
+		public ModelAndView UpdateAssetEntryPage()
+		{
+			
+			System.out.println("comming to AssetEntry");
+			ModelAndView mv=new ModelAndView("AssetEntry");
+			
+			mv.addObject("company",opr.CompanyNames());
+			mv.addObject("license",opr.licenseTypes());
+			mv.addObject("check",  1);
+			mv.addObject("button", 1);
+			
+			return mv;
+		}
+		@RequestMapping(value="DeleteAsset",method=RequestMethod.GET)
+		public ModelAndView DeleteAssetEntryPage()
+		{
+			
+			System.out.println("comming to AssetEntry");
+			ModelAndView mv=new ModelAndView("AssetEntry");
+			
+			mv.addObject("company",opr.CompanyNames());
+			mv.addObject("license",opr.licenseTypes());
+			
+			mv.addObject("check",  1);
+			mv.addObject("button", 2);
+			return mv;
+		}
+		
+		@RequestMapping(value="asset/assetDelete",method=RequestMethod.GET)
+		public @ResponseBody
+				String deleteAssetP(String assetId)
+		{
+			String result=opr.assetIdIsDeleted(assetId);
+			return result;
+		}
+			
+		@RequestMapping(value="asset/assetUpdate",method=RequestMethod.GET)
+		public @ResponseBody
+				String updateAssetP(String assetId,String invoiceId,String companyId,int assetWarranty,String assetPurchaseDate,String assetAMCVendor,String assetModel,String assetSerialNumber,String assetInsuranceDate,String assetMotherBoardType,String assetCPU,String assetRAM,String assetHDD,String assetOS,String assetOSLicenseType,String assetOSLicenseNumber,String assetOSLicenseKey,String assetGraphicsCard)
+			{
+				System.out.println(assetId);
+				AssetMaster am=new AssetMaster();
+				am.setAssetId(assetId);am.setInvoiceId(invoiceId);am.setCompanyId(companyId);am.setAssetWarranty(assetWarranty);am.setAssetPurchaseDate(assetPurchaseDate);am.setAssetAMCVendor(assetAMCVendor);am.setAssetModel(assetModel);am.setAssetSerialNumber(assetSerialNumber);am.setAssetInsuranceDate(assetInsuranceDate);am.setAssetMotherBoardType(assetMotherBoardType);am.setAssetCPU(assetCPU);am.setAssetRAM(assetRAM);am.setAssetHDD(assetHDD);am.setAssetOS(assetOS);am.setAssetOSLicenseKey(assetOSLicenseKey);am.setAssetOSLicenseNumber(assetOSLicenseNumber);am.setAssetOSLicenseType(assetOSLicenseType);am.setAssetGraphicsCard(assetGraphicsCard);
+				String str=opr.assetIdIsUpdated(am);
+				
+				return  str;
+			}
+//-------------------------------------------------------------AssetAllocation  All controller----------------------------------------------------------//		
+		  
+		@RequestMapping(value="Allocated",method=RequestMethod.POST)
+		public ModelAndView GiveAssetToUsers(@ModelAttribute("list")com.assets.model.AssetAllocation  re1,BindingResult result1,@RequestParam("assetId1")String assetId1)
+		{
+			ModelAndView mv=new ModelAndView("AssetAllocation");
+			String str=opr.SaveAllocation(re1, assetId1);
+			if(str.equals("success"))
+			{
+				mv.addObject("msg", "Data is Submitted");
+			}
+			else if(str.equals("notpresent"))
+			{
+				mv.addObject("msg", "AssetId dosen't exist");	
+			}
+			else if(str.equals("error"))
+			{
+				mv.addObject("msg", "please check details");
+			}
+			else if(str.equals("errorP"))
+			{
+				mv.addObject("msg", "EmpId already exist");
+			}
+			else if(str.equals("assetandemo"))
+			{
+				mv.addObject("msg", "Asset is already allocated to employee");
+			}
+			mv.addObject("assetId1", assetId1);		
+			mv.addObject("re", re1);
+			mv.addObject("profile",opr.userprofile());
+			return mv;
+		}
+		
+		
+		@RequestMapping(value="AssetAllocation",method=RequestMethod.GET)
+		  public ModelAndView AssetAllocation()
+		  {
+			 
+			  ModelAndView mv=new ModelAndView("AssetAllocation");
+			  mv.addObject("check", 0);
+			  mv.addObject("button",0);
+			  mv.addObject("profile",opr.userprofile());
+			  
+			  return mv;
+		  }
+		
+		  @RequestMapping(value="AssetAllocationUpdate",method=RequestMethod.GET)
+		  public ModelAndView AssetAllocationupdate()
+		  {
+			 
+			  ModelAndView mv=new ModelAndView("AssetAllocation");
+			  mv.addObject("check", 1);
+			  mv.addObject("button",1);
+			  mv.addObject("profile",opr.userprofile());
+			  
+			  return mv;
+		  }
+		  
+		  @RequestMapping(value="AssetAllocationDelete",method=RequestMethod.GET)
+		  public ModelAndView AssetAllocationdelete()
+		  {
+			 
+			  ModelAndView mv=new ModelAndView("AssetAllocation");
+			  mv.addObject("check", 1);
+			  mv.addObject("button",2);
+			  mv.addObject("profile",opr.userprofile());
+			  
+			  return mv;
+		  } 
+		  
+		  @RequestMapping(value="allocation/allocationDelete",method=RequestMethod.GET)
+			public @ResponseBody String allocateDelete(String assetId,long empid)
+			{
+			  	String result=opr.allocationDeleted(assetId,empid);
+				
+				return result;
+			}
+		  
+		  @RequestMapping(value="allocation/allocationUpdate",method=RequestMethod.GET)
+		  public @ResponseBody String Allocationupdate(Long employeeId,String assetId1,String deskLocation,String userName,String projectName,String reportingManager,String userProfileId,String hostName)
+		  {
+			 AssetAllocation all=new AssetAllocation();
+			 AssetMaster am=new AssetMaster();
+			 am.setAssetId(assetId1);
+			 all.setAssetId1(am);all.setEmployeeId(employeeId);all.setDeskLocation(deskLocation);all.setHostName(hostName);all.setProjectName(projectName);all.setReportingManager(reportingManager);
+			 all.setUserName(userName);all.setUserProfileId(userProfileId);
+			 String result=opr.allocationUpdate(all);
+			  
+			  return result;
+		  }
+		  
+		 
+
+//-------------------------------------------------------------Invoice All controller----------------------------------------------------------//
+@RequestMapping(value="invoiceEntry",method=RequestMethod.POST)
+public ModelAndView invoiceMasterorg(@ModelAttribute("list2")InvoiceMaster re1,BindingResult result)
+{
+	ModelAndView mv=new ModelAndView("InvoiceEntry");
+	String s=opr.InvoiceMasterEntry(re1);
+	if(s.equals("success"))
+	{
+		mv.addObject("msg", "Data is Submitted");
+	}
+	else if(s.equals("errorP"))
+	{
+		mv.addObject("msg", "Invoice Number Already exist");
+	}
+	else if(s.equals("error"))
+	{
+		mv.addObject("msg", "please check details");
+	}
+	
+	mv.addObject("re", re1);
+	mv.addObject("company",opr.CompanyNames());
+	mv.addObject("invoiceStatus", opr.invoiceType());	
+	
+	return mv;
+  }
+		  
+		  @RequestMapping(value="InvoiceEntry",method=RequestMethod.GET)
+			public ModelAndView InvoiceEntry()
+			{
+				ModelAndView mv=new ModelAndView("InvoiceEntry");
+				mv.addObject("company",opr.CompanyNames());
+				mv.addObject("invoiceStatus", opr.invoiceType());
+				mv.addObject("check", 0);
+				mv.addObject("button", 0);
+				return mv;
+			}
+		  
+		  @RequestMapping(value="InvoiceUpdate",method=RequestMethod.GET)
+			public ModelAndView InvoiceEntryUpdate()
+			{
+				ModelAndView mv=new ModelAndView("InvoiceEntry");
+				mv.addObject("company",opr.CompanyNames());
+				mv.addObject("invoiceStatus", opr.invoiceType());
+				mv.addObject("check", 1);
+				mv.addObject("button", 1);
+				return mv;
+			}
+		  
+		  @RequestMapping(value="InvoiceDelete",method=RequestMethod.GET)
+			public ModelAndView InvoiceEntryDelete()
+			{
+				ModelAndView mv=new ModelAndView("InvoiceEntry");
+				mv.addObject("company",opr.CompanyNames());
+				mv.addObject("invoiceStatus", opr.invoiceType());
+				mv.addObject("check", 1);
+				mv.addObject("button", 2);
+				return mv;
+			}
+		  
+		  @RequestMapping(value="invoice/invoiceDelete",method=RequestMethod.GET)
+			public @ResponseBody String invoiceDelete(Long invoiceNo)
+			{
+			  	String result=opr.invoiceDeleted(invoiceNo);
+				
+			  	return result;
+			}
+		  
+		  
+		  @RequestMapping(value="invoice/invoiceUpdate",method=RequestMethod.GET)
+		  public @ResponseBody String invoiceupdate(Long invoiceNo,String invoiceDate,String companyId,float invoiceAmount,String invoiceStatus)
+		  {
+			 InvoiceMaster am=new InvoiceMaster();
+			 am.setCompanyId(companyId);am.setInvoiceAmount(invoiceAmount);am.setInvoiceDate(invoiceDate);am.setInvoiceNo(invoiceNo);am.setInvoiceStatus(invoiceStatus);
+			 String result=opr.invoiceUpdate(am);
+			  
+			  return result;
+		  }
+		  
+//-----------------------------------------------SWLicenseMaster All Controller -----------------------------------------------------------------------------------------------------------//
+		 
+ @RequestMapping(value="licenseMaster",method=RequestMethod.POST)
+public ModelAndView swLicenseMaster(@ModelAttribute("list2")SWLicenseMaster re1,BindingResult result,@RequestParam("invoiceNo")Long invoiceNo)
+{
+	ModelAndView mv=new ModelAndView("LicenseMaster"); 
+	System.out.println("comming to licenseMaster");
+	String s=opr.SWLicenseMaster1(re1, invoiceNo);
+	if(s.equals("success"))
+	{
+		mv.addObject("msg", "Data is Submitted");
+	}
+	else if(s.equals("notpresent"))
+	{
+		mv.addObject("msg", "Invoice No dosen't exist");	
+	}
+	else if(s.equals("error"))
+	{
+		mv.addObject("msg", "please check details");
+	}
+	else if(s.equals("errorP"))
+	{
+		mv.addObject("msg", "license Number Already exist");
+	}
+	mv.addObject("re", re1);
+	mv.addObject("invoiceNo",invoiceNo);
+	mv.addObject("licenseType", opr.licenseTypes());
+	mv.addObject("company",opr.CompanyNames());
+	return mv;
+}  
+		  
+	@RequestMapping(value="LicenseMaster",method=RequestMethod.GET)
+	public ModelAndView License()
+	{
+		ModelAndView mv=new ModelAndView("LicenseMaster");
+		mv.addObject("company",opr.CompanyNames());
+		mv.addObject("licenseType", opr.licenseTypes());
+		mv.addObject("check", 0);
+		mv.addObject("button",0);
+		return mv;
+	}
+  
+  @RequestMapping(value="LicenseUpdate",method=RequestMethod.GET)
+	public ModelAndView LicenseUpdate()
+	{
+		ModelAndView mv=new ModelAndView("LicenseMaster");
+		mv.addObject("company",opr.CompanyNames());
+		mv.addObject("licenseType", opr.licenseTypes());
+		mv.addObject("check", 1);
+		mv.addObject("button", 1);
+		return mv;
+	}
+  @RequestMapping(value="LicenseDelete",method=RequestMethod.GET)
+	public ModelAndView LicenseDelete()
+	{
+		ModelAndView mv=new ModelAndView("LicenseMaster");
+		mv.addObject("company",opr.CompanyNames());
+		mv.addObject("licenseType", opr.licenseTypes());
+		mv.addObject("check", 1);
+		mv.addObject("button", 2);
+		return mv;
+	}
+ 
+  
+  @RequestMapping(value="license/licenseDelete",method=RequestMethod.GET)
+	public @ResponseBody String invoiceDelete(String LicenseNo)
+	{	
+	  	System.out.println(LicenseNo+"-----------------------------------");
+	  	String result=opr.licenseDeleted(LicenseNo);
+		
+	  	return result;
+	}
+		  
+@RequestMapping(value="checklicense",method=RequestMethod.GET)
+	public @ResponseBody
+		   String checkLicense(String LicenseNo) throws JSONException
+  	{
+	
+		JSONArray userArray = new JSONArray();
+	
+	    for (SWLicenseMaster user : opr.checklicense(LicenseNo)) 
+	    {
+	    	JSONObject userJSON = new JSONObject();
+	  	   	userJSON.put("LicenseNo", user.getLicenseNo());
+	  	   	userJSON.put("invoiceNumber", user.invoiceNo.getInvoiceNo());
+	  		userJSON.put("companyId", user.getCompanyId());
+	  		userJSON.put("sWDescription", user.getsWLicenseDescription());
+	  		userJSON.put("sWLicenseExpiryDate", user.getsWLicenseExpiryDate());
+	  		userJSON.put("sWLicenseKey", user.getsWLicenseKey());
+	  		userJSON.put("sWLicenseStartDate", user.getsWLicenseStartDate());
+	  		userJSON.put("sWLicenseType", user.getsWLicenseType());
+	        userArray.put(userJSON);
+	    }
+   		
+    	String s="{\"Result\":\"OK\",\"Records\":"+userArray+"}";
+    	
+    	return s;
+    }
+
+
+	@RequestMapping(value="license/licenseUpdate",method=RequestMethod.GET)
+	public @ResponseBody String licenseupdate(Long invoiceNo,String LicenseNo,String sWLicenseDescription,String companyId,String sWLicenseStartDate,String sWLicenseType,String sWLicenseExpiryDate,String sWLicenseKey)
+	{
+	 InvoiceMaster am=new InvoiceMaster();
+	 SWLicenseMaster slm=new SWLicenseMaster();
+	 slm.setLicenseNo(LicenseNo);slm.setsWLicenseDescription(sWLicenseDescription);slm.setCompanyId(companyId);slm.setsWLicenseStartDate(sWLicenseStartDate);slm.setsWLicenseType(sWLicenseType);slm.setsWLicenseExpiryDate(sWLicenseExpiryDate);slm.setsWLicenseKey(sWLicenseKey);
+	 am.setInvoiceNo(invoiceNo);slm.setInvoiceNo(am);
+	 
+	 
+	 String result=opr.licenseUpdate(slm,invoiceNo);
+	  
+	  return result;
+	}
+	
+//------------------------------------------------------------------SWInstallation of all controller--------------------------------------------------------------------//		  
+@RequestMapping(value="Swinstallation",method=RequestMethod.POST)
+public ModelAndView swinstall(@ModelAttribute("list2")AssetSWInstallation re1,BindingResult result,@RequestParam("assetId2")String assetId2,@RequestParam("licenseNo") String licenseNo)
+{
+	ModelAndView mv=new ModelAndView("swinstallEntry");
+	String s1=opr.SWInstallation(re1, assetId2,licenseNo);
+	if(s1.equals("success"))
+	{
+		mv.addObject("msg", "Data is Submitted");
+	}
+	else if(s1.equals("notpresent"))
+	{
+		mv.addObject("msg", "AssetId dosen't exist");	
+	}
+	else if(s1.equals("error"))
+	{
+		mv.addObject("msg", "please check details");
+	}
+	else if(s1.equals("notpresent1"))
+	{
+		mv.addObject("msg", "License No dosen't exist");
+	}
+	else if(s1.equals("assigned"))
+	{
+		mv.addObject("msg", "s/w is already installed in this AssetId");
+		
+	}
+	mv.addObject("assetId2", assetId2);
+	mv.addObject("licenseNo", licenseNo);
+	mv.addObject("re", re1);
+	
+	return mv;
+} 
+	
+	
+@RequestMapping(value="SwInstallUpdate")
+public ModelAndView swinstallEntryUpdate()
+ {
+	ModelAndView mv=new ModelAndView("swinstallEntry");
+  	mv.addObject("check", 1);
+  	mv.addObject("button", 1);
+	return mv;
+ }
+	  
+  @RequestMapping(value="SwInstallDelete")
+  public ModelAndView swinstallEntryDelete()
+   {
+	  	ModelAndView mv=new ModelAndView("swinstallEntry");
+	  	mv.addObject("check", 1);
+	  	mv.addObject("button", 2);
+		return mv;
+   }
+  @RequestMapping(value="SwInstallation")
+  public ModelAndView swinstallEntry()
+   {
+	  	ModelAndView mv=new ModelAndView("swinstallEntry");
+	  	mv.addObject("check", 0);
+	  	mv.addObject("button",0);
+	  	return mv;
+   }
+    	
+	  @RequestMapping(value="checkSwlicenseNo",method=RequestMethod.GET)
+		public @ResponseBody
+		  String checkInvoiceNo(String assetId) throws JSONException
+		  {
+			
+				JSONArray userArray = new JSONArray();
+			// if u require sorting then you can add another column
+		    for (AssetSWInstallation user : opr.checkswinstall(assetId)) 
+		    {
+		    	
+		  	   	JSONObject userJSON = new JSONObject(); 
+		  	   	userJSON.put("assetId2", user.getAssetId2().getAssetId());
+		  		userJSON.put("licenseNo", user.getLicenseNo().getLicenseNo());
+		  		userJSON.put("sWVersion", user.getsWVersion());
+		  		userJSON.put("sWDescription", user.getsWDescription());
+		        userArray.put(userJSON);
+		       
+		        
+		    }
+		   		
+		    	String s="{\"Result\":\"OK\",\"Records\":"+userArray+"}";
+		    	
+		    	return s;
+			  
+		  }	
+	  
+	 /* SWLicense/SWLicenseDelete*/
+	  
+	  
+	  @RequestMapping(value="SWLicense/SWLicenseDelete",method=RequestMethod.GET)
+		public @ResponseBody String SWlicensesDelete(String assetId,String licenseNo)
+		{	
+		  	System.out.println(licenseNo+"this licenseNo ------->"+assetId);
+		  	String result=opr.SWLicenseDeleted(licenseNo,assetId);
+			
+		  	return result;
+		}
+	  /*SWlicense/SWlicenseUpdate*/
+	  
+	  @RequestMapping(value="SWlicense/SWlicenseUpdate",method=RequestMethod.GET)
+		public @ResponseBody String SWlicenseupdate(String assetId2,String licenseNo,String sWVersion,String sWDescription)
+		{
+		  AssetMaster am=new AssetMaster();
+		  SWLicenseMaster slm=new SWLicenseMaster();
+		  AssetSWInstallation asi=new AssetSWInstallation();
+		  am.setAssetId(assetId2);slm.setLicenseNo(licenseNo);asi.setAssetId2(am);asi.setLicenseNo(slm);asi.setsWVersion(sWVersion);asi.setsWDescription(sWDescription);
+		 
+		 
+		 String result=opr.SWlicenseUpdate(asi);
+		  
+		  return result;
+		}
+	  
+	  
+
+//---------------------------------------------------LookUp Table ---------------------------------------------------------------------------------------//
+	  
+	  @RequestMapping(value="lookUp",method=RequestMethod.POST)
+	  public ModelAndView lookData(@RequestParam("lookupvalue")String lookupvalue,@RequestParam("lookupid")String lookupid,@RequestParam("lookupdesc")String lookupdesc)
+	  {
+	  	System.out.println("comming to lookUp");
+	  	ModelAndView mv=new ModelAndView("LookUp");
+	  	String s=opr.saveLookup(lookupvalue, lookupid, lookupdesc);
+	  	if(s.equals("success"))
+	  	{
+	  		mv.addObject("msg", "datasubmited");
+	  	}
+	  	if(s.equals("errorP"))
+	  	{
+	  		mv.addObject("msg", "Data Already Exist");
+	  		mv.addObject("lookupid", lookupid);
+	  		mv.addObject("lookupdesc", lookupdesc);
+	  	}
+	  	if(s.equals("error"))
+	  	{
+	  		mv.addObject("msg", "invalid data");
+	  		mv.addObject("lookupid", lookupid);
+	  		mv.addObject("lookupdesc", lookupdesc);
+	  	}
+	  	
+	  	return mv;
+	  }
+	  
+	  
+		@RequestMapping(value="Lookup",method=RequestMethod.GET)
+		public ModelAndView Lookup()
+		{
+			ModelAndView mv=new ModelAndView("LookUp");
+			mv.addObject("check", 0);
+		  	mv.addObject("button", 0);
+			
+			return mv;
+		}
+		
+		@RequestMapping(value="LookupUpdate",method=RequestMethod.GET)
+		public ModelAndView LookupUpdate()
+		{
+			ModelAndView mv=new ModelAndView("LookUp");
+			mv.addObject("check", 1);
+		  	mv.addObject("button", 1);
+			
+			return mv;
+		}
+		
+		@RequestMapping(value="LookupDelete",method=RequestMethod.GET)
+		public ModelAndView LookupDelete()
+		{
+			ModelAndView mv=new ModelAndView("LookUp");
+			mv.addObject("check", 1);
+		  	mv.addObject("button", 2);
+			
+			return mv;
+		}
+		
+		@RequestMapping(value="assetStock",method=RequestMethod.GET)
+		public ModelAndView Assetstock()
+		{
+			ModelAndView mv=new ModelAndView("AssetStock");
+			mv.addObject("AssetStock", opr.assetstock());
+			
+			return mv;
+		}
+		
+		@RequestMapping(value="lookUp/lookupGet",method=RequestMethod.GET)
+		public @ResponseBody 
+				String lookupGet(String lookupid,String lookup) throws JSONException
+		{
+			String tableName=null;
+			String columnName=null;
+			String columnName1=null;
+			if(lookupid.equalsIgnoreCase("comp")){tableName="CompanyLookup";columnName="company_Id";columnName1="company_Description";} else if(lookupid.equalsIgnoreCase("status")){tableName="AssetStatusLookup";columnName="assetStatusId";columnName1="assetStatusDescription";} else if(lookupid.equalsIgnoreCase("invo")){tableName="InvoiceStatusLookup";columnName="invocieStatusId";columnName1="invoiceStatusDescription";} else if(lookupid.equalsIgnoreCase("user")){tableName="UserProfileLookup";columnName="userProfileId";columnName1="userProfileDescription";} else if(lookupid.equalsIgnoreCase("lice")){tableName="SWLicenseTypeLookup";columnName="swLicenseTypeId";columnName1="swLicenseTypeDescription";} else if(lookupid.equalsIgnoreCase("type")){tableName="AssetTypeLookup";columnName="assetTypeId";columnName1="assetTypeDescription";}
+			String str=opr.lookGet(tableName,lookup,columnName,columnName1);
+			return str;
+		}
+		@RequestMapping(value="lookUp/lookupUpdate",method=RequestMethod.GET)
+		public @ResponseBody
+					String lookupUpdate(String lookupid,String lookup,String lookupdesc)
+			{	
+				String tableName=null;
+				String columnName=null;
+				String columnName1=null;
+				if(lookupid.equalsIgnoreCase("comp")){tableName="CompanyLookup";columnName="company_Id";columnName1="company_Description";} else if(lookupid.equalsIgnoreCase("status")){tableName="AssetStatusLookup";columnName="assetStatusId";columnName1="assetStatusDescription";} else if(lookupid.equalsIgnoreCase("invo")){tableName="InvoiceStatusLookup";columnName="invocieStatusId";columnName1="invoiceStatusDescription";} else if(lookupid.equalsIgnoreCase("user")){tableName="UserProfileLookup";columnName="userProfileId";columnName1="userProfileDescription";} else if(lookupid.equalsIgnoreCase("lice")){tableName="SWLicenseTypeLookup";columnName="swLicenseTypeId";columnName1="swLicenseTypeDescription";} else if(lookupid.equalsIgnoreCase("type")){tableName="AssetTypeLookup";columnName="assetTypeId";columnName1="assetTypeDescription";}
+				String s=opr.lookupUpdate(tableName,lookup,lookupdesc,columnName,columnName1);
+				return s;
+			}
+		
+		@RequestMapping(value="lookUp/lookupDelete",method=RequestMethod.GET)
+		public @ResponseBody
+					 String lookupDelete(String lookupid,String lookup)
+			{	
+				System.out.println("comming to this lookupDelete");
+				String tableName=null;
+				String columnName=null;
+				if(lookupid.equalsIgnoreCase("comp")){tableName="CompanyLookup";columnName="company_Id";} else if(lookupid.equalsIgnoreCase("status")){tableName="AssetStatusLookup";columnName="assetStatusId";} else if(lookupid.equalsIgnoreCase("invo")){tableName="InvoiceStatusLookup";columnName="invocieStatusId";} else if(lookupid.equalsIgnoreCase("user")){tableName="UserProfileLookup";columnName="userProfileId";} else if(lookupid.equalsIgnoreCase("lice")){tableName="SWLicenseTypeLookup";columnName="swLicenseTypeId";} else if(lookupid.equalsIgnoreCase("type")){tableName="AssetTypeLookup";columnName="assetTypeId";}
+				String s=opr.lookupDelete(tableName,lookupid,lookup,columnName);
+				
+				return s;
+			}
+		
+		@RequestMapping(value="",method=RequestMethod.GET)
+		public ModelAndView ReportGenerate()
+		{
+			ModelAndView mv=new ModelAndView();
+			
+			return mv;
+		}
+				
+}
