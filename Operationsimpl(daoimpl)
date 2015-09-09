@@ -1,0 +1,1425 @@
+package com.assets.database;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import java.util.Map;
+
+import org.hibernate.NonUniqueObjectException;
+import org.hibernate.Query;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+
+import com.assets.model.AssetAllocation;
+import com.assets.model.AssetMaster;
+import com.assets.model.AssetSWInstallation;
+import com.assets.model.AssetStatusLookup;
+import com.assets.model.AssetStock;
+import com.assets.model.AssetTypeLookup;
+import com.assets.model.CompanyLookup;
+import com.assets.model.InvoiceMaster;
+import com.assets.model.InvoiceStatusLookup;
+import com.assets.model.LoginDetails;
+
+
+
+
+import com.assets.model.SWLicenseMaster;
+import com.assets.model.SWLicenseTypeLookup;
+import com.assets.model.UserProfileLookup;
+
+
+
+
+
+@Repository
+public class Operationsimpl implements Operations 
+	{
+	
+	
+			@Autowired
+			SessionFactory sessionfactory;
+
+	
+			
+			
+@Override  /*<LoginDetails>*/ 
+public List loginCheck(String username,String password)
+  {
+	List<LoginDetails> li ;
+	Session se = sessionfactory.openSession();
+	se.beginTransaction();
+	Query log = se.createQuery("from LoginDetails where username=:user and Password=:password");
+	log.setString("user", username);
+	log.setString("password", password);
+	li = log.list();
+    int i = log.list().size();
+
+    if (i == 1) 
+	{
+
+	  return li;
+	} 
+	else 
+	{
+	  return li;
+	}
+  }
+
+
+
+// This is userd to check the change password Details
+ @Override
+ public boolean checkChangePasswordDetails(String username, String password,String email) 
+  {
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	Query log=se.createQuery("from LoginDetails where username=:user and email=:email");
+	log.setString("user", username);
+	log.setString("email", email);
+	int i=log.list().size();
+								
+	if(i == 1)
+	 {
+		try
+		  {
+			  Query log1=se.createQuery("update LoginDetails set password=:pass where username=:user");
+			  log1.setString("user", username);
+			  log1.setString("pass", password);
+			  log1.executeUpdate();
+			  se.getTransaction().commit();
+			  return true;
+		  }
+		  catch(Exception e)
+		  {
+			  return false;
+		  }
+	  }
+	  else
+	  {
+		  return false;
+	  }
+								
+								
+								
+   }
+
+
+
+@Override
+public String checkuser(String username) 
+{
+  try
+  {
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	Query log=se.createQuery("select email from LoginDetails where username=:user");
+    log.setString("user", username);
+	String s=(String) log.uniqueResult();
+	if(!s.isEmpty())
+	{
+    	return s;
+	}
+	else
+	{
+    	return "NoResult";
+	}
+   }
+  catch(Exception e)
+  {
+	return "NoResult";
+  }
+}
+
+
+  @Override
+  public String Lookup1(String companyId,String companydesc)
+  {
+		try
+		{
+			Session se=sessionfactory.openSession();
+			se.beginTransaction();
+	//		CompanyLookup up=new CompanyLookup();
+	//		up.setCompany_Id(companyId);
+	//		up.setCompany_Description(companydesc);
+	//		se.save(up);
+			se.getTransaction().commit();
+			se.close();
+		}
+		catch(Exception e)
+		{
+			System.out.println("comming to catch block");
+			return "false";
+		}
+	return "true";
+  }
+
+
+
+@Override
+public String Lookup2(String assetid, String assetdesc) 
+{
+	try
+	{
+		Session se=sessionfactory.openSession();
+		se.beginTransaction();
+	//	AssetStatusLookup as=new AssetStatusLookup();
+	//	as.setAssetStatusDescription(assetdesc);
+	//	as.setAssetStatusId(assetid);
+	//	se.save(as);
+		se.getTransaction().commit();
+		se.close();
+	}
+	catch(Exception e)
+	{
+		return "false";
+	}
+	return "true";
+}
+
+
+
+@Override
+public String SaveData(AssetMaster re) 
+{
+	String s,s1 = null;
+	int j=0;
+	try
+	{
+		Session se=sessionfactory.openSession();
+		se.beginTransaction();
+		
+		re.setAssetStatus("Stock");
+		
+		se.save(re);
+		/* this try block is used for SPT,SPTR in AssetId eg:SPT-CPU-XXXX or SPTR-CPU-XXXX*/
+		try
+		{
+			System.out.println("comming before index");
+			s= re.getAssetId();
+			String[] s2 = new String[3];
+			 for (String retval: s.split("-"))
+			 {
+		         s2[j]=retval;
+		         j++;
+		     }
+			 s1=s2[1];
+			
+		}
+		catch(Exception e)
+		{
+			return "errorA";
+		}
+			
+		 Query log1=se.createQuery("from AssetTypeLookup where assetTypeId='"+s1+"'");
+		 int i=log1.list().size();
+		 if(i==1)
+		 {
+			 Query log2=se.createQuery("from AssetStock where assetType='"+s1+"'");
+			 int i1=log2.list().size();
+			 if(i1==1)
+			 {
+				 System.out.println("comming to AssetStock--->update");
+				 Query log3=se.createQuery("update AssetStock set assetTotal=assetTotal+1 where assetType='"+s1+"'");
+				 log3.executeUpdate(); 
+			 }
+			 else
+			 {
+				 	Query qu4=se.createQuery("select assetTypeDescription from AssetTypeLookup where assetTypeId='"+s1+"'");
+				 	String ss=(String) qu4.uniqueResult();
+				 	System.out.println("comming to AssetStock---->insert");
+					AssetStock as=new AssetStock();
+					as.setAssetType(s1);
+					as.setAssetTotal(1);
+					as.setAssetDescription(ss);
+					as.setAssetFree(0);
+					as.setAssetUsed(0);
+					se.save(as);
+			 }
+		 }
+		 else
+		 {
+			 return "errorA";
+		 }
+		
+		 
+		se.getTransaction().commit();
+		se.close();
+	}
+	
+	catch(StringIndexOutOfBoundsException e)
+	{
+		System.out.println(e);
+		return null;
+	}
+	catch(ConstraintViolationException e)
+	{
+		System.out.println("comming to your desigre dude");
+		return "errorP";
+	}
+	catch(Exception e)
+	{
+		System.out.println(e);
+		return "error";
+	}
+	return "success";
+}
+
+
+
+@Override
+public List<CompanyLookup> CompanyNames() 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	Query log = se.createQuery("from CompanyLookup");
+	
+	
+	return log.list();
+}
+
+
+
+@Override
+public List<SWLicenseTypeLookup> licenseTypes() {
+	
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	Query log = se.createQuery("from SWLicenseTypeLookup");
+	
+	return log.list();
+}
+
+
+
+@Override
+public List<AssetStatusLookup> AssetStatus() {
+
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	Query log = se.createQuery("from AssetStatusLookup");
+	
+	return log.list();
+	
+}
+
+
+
+@Override
+public List<AssetTypeLookup> AssetType() 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	Query log=se.createQuery("from AssetTypeLookup");
+	
+	return log.list();
+}
+
+
+
+@Override
+public List<InvoiceStatusLookup> invoiceType() {
+	
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	Query log=se.createQuery("from InvoiceStatusLookup");
+	
+	return log.list();
+}
+
+
+
+@Override
+public String SaveAllocation(AssetAllocation re1, String assetId1) 
+{
+	String s = null;
+	int j=0;
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	try
+	{
+		Query qu=se.createQuery("from AssetMaster where assetId='"+assetId1+"'");
+		int i=qu.list().size();
+		if(i==1)
+		{
+			try
+			{	
+				/*int i1=assetId1.indexOf("-");
+				s=assetId1.substring(i1+1, i1+4);*/
+				String[] s2 = new String[3];
+				 for (String retval: assetId1.split("-"))
+				 {
+			         s2[j]=retval;
+			         j++;
+			     }
+				 s=s2[1];
+				
+			}
+			catch(Exception e)
+			{
+				
+				return "notpresent";
+			}
+			Query check=se.createQuery("from AssetAllocation where assetId1='"+assetId1+"'and employeeId="+re1.getEmployeeId());
+			int k1=check.list().size();
+			if(k1 == 1)
+			{
+				return "assetandemo";
+			}
+			else
+			{
+				Query qu2=se.createQuery("from AssetAllocation where assetId1='"+assetId1+"'");
+				int k=qu2.list().size();
+				if(k == 0)
+				{
+					Query qu1=se.createQuery("update AssetStock set assetUsed=assetUsed+1 where assetType='"+s+"'");
+					qu1.executeUpdate();
+				}
+				AssetMaster am=new AssetMaster();
+				am.setAssetId(assetId1);
+				re1.setAssetId1(am);
+				se.save(re1);
+				se.getTransaction().commit();
+				se.close();
+				return "success";
+			}
+		}
+		else
+		{
+			return "notpresent";
+		}
+		
+	}
+	catch(ConstraintViolationException e)
+	{
+		se.getTransaction().rollback();
+		return "errorP";
+	}
+	catch(Exception e)
+	{
+		se.getTransaction().rollback();
+		return "error";
+	}
+
+}
+
+
+
+@Override
+public String saveLookup(String lookupvalue, String lookupid, String lookupdesc) 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	try
+	{
+		Query qu = null;
+		if(lookupvalue.equals("comp"))
+		{
+			CompanyLookup up=new CompanyLookup();
+			up.setCompany_Id(lookupid);
+			up.setCompany_Description(lookupdesc);
+			se.save(up);
+		}
+		else if(lookupvalue.equals("status"))
+		{
+			AssetStatusLookup up=new AssetStatusLookup();
+			up.setAssetStatusDescription(lookupid);
+			up.setAssetStatusId(lookupdesc);
+			se.save(up);
+		}
+		else if(lookupvalue.equals("invo"))
+		{
+			InvoiceStatusLookup up=new InvoiceStatusLookup();
+			up.setInvocieStatusId(lookupid);
+			up.setInvoiceStatusDescription(lookupdesc);
+			se.save(up);
+		}
+		else if(lookupvalue.equals("user"))
+		{
+			UserProfileLookup up=new UserProfileLookup();
+			up.setUserProfileId(lookupid);
+			up.setUserProfileDescription(lookupdesc);
+			se.save(up);
+		}
+		else if(lookupvalue.equals("lice"))
+		{
+			 SWLicenseTypeLookup up=new SWLicenseTypeLookup();
+			 up.setSwLicenseTypeId(lookupid);
+			 up.setSwLicenseTypeDescription(lookupdesc);
+			 se.save(up);
+		}
+		else if(lookupvalue.equals("type"))
+		{
+			AssetTypeLookup up=new AssetTypeLookup();
+			up.setAssetTypeId(lookupid);
+			up.setAssetTypeId(lookupdesc);
+			se.save(up);
+		}
+	   se.getTransaction().commit();
+	}
+	catch(ConstraintViolationException e)
+	 {
+		return "errorP";
+	 }
+	catch(Exception e)
+	 {
+		return "error";
+	 }
+	return "success";
+}
+
+
+
+@Override
+public String SWInstallation(AssetSWInstallation re1, String assetId2,String licenseNo) 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	try
+	{
+		Query qu=se.createQuery("from AssetMaster where assetId='"+assetId2+"'");
+		int i=qu.list().size();
+		if(i == 1)
+		{
+			Query qu1=se.createQuery("from SWLicenseMaster where licenseNo='"+licenseNo+"'");
+			int i1=qu1.list().size();
+			if(i1 == 1)
+			{
+				Query qu2=se.createQuery("from AssetSWInstallation where licenseNo='"+licenseNo+"' and assetId2='"+assetId2+"'");
+				int i2=qu2.list().size();
+				if(i2 == 0)
+				{
+					AssetMaster am=new AssetMaster();
+					am.setAssetId(assetId2);
+					SWLicenseMaster slm=new SWLicenseMaster();
+					slm.setLicenseNo(licenseNo);
+					re1.setLicenseNo(slm);
+					re1.setAssetId2(am);
+					se.save(re1); 														// increase the assetStock table here
+					se.getTransaction().commit();
+					return "success";
+			    }
+				else
+				{
+					return "assigned";
+				}
+			}
+			else
+			{
+				return "notpresent1";
+			}
+		}
+		else
+		{
+			return "notpresent";
+		}
+	}
+	catch(ConstraintViolationException e)
+	{
+		return "errorP";
+	}
+	catch(Exception e)
+	{
+		System.out.println(e);
+		return "error";
+	}
+	
+}
+
+
+
+@Override
+public String SWLicenseMaster1(SWLicenseMaster re1,Long invoiceNo) 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	try
+	{
+		Query qu=se.createQuery("from InvoiceMaster where  invoiceNo="+invoiceNo);
+		int i=qu.list().size();
+		if(invoiceNo == null)
+		{
+			Long j=(long) 8999;					// here we can give one Default invoice id for all the items wich user do not want invoice details
+			InvoiceMaster im=new InvoiceMaster();
+			im.setInvoiceNo(j);
+			re1.setInvoiceNo(im);
+			se.save(re1);
+			se.getTransaction().commit();
+			return "success";
+		}
+		else
+		{
+			
+			if(i == 1)
+			{
+				InvoiceMaster im=new InvoiceMaster();
+				im.setInvoiceNo(invoiceNo);
+				re1.setInvoiceNo(im);
+				se.save(re1);
+				se.getTransaction().commit();
+				return "success";
+			}
+			else
+			{
+				return "notpresent";
+			 }
+		}
+	}
+	catch(ConstraintViolationException e)
+	{
+		return "errorP";
+	}
+	catch(NonUniqueObjectException e)
+	{
+		return "errorP";
+	}
+	catch(Exception e)
+	{
+		System.out.println(e);
+		return "error";
+	}
+}
+
+
+
+@Override
+public String InvoiceMasterEntry(InvoiceMaster re1) 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	try
+	{
+			se.save(re1);
+			se.getTransaction().commit();
+			return "success";
+		
+	}
+	catch(ConstraintViolationException e)
+	{
+		return "errorP";
+	}
+	catch(Exception e)
+	{
+		System.out.println(e);
+		return "error";
+	}
+}
+
+
+
+@Override
+public int totalAssetCount(String name,String FileType,String date) 
+{
+	
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	Query count = null;
+	
+	if( (name == "" || name == null) && (FileType == "" || FileType == null) && (date == "" || date == null))
+	{
+		
+		count=se.createQuery("from AssetMaster");
+	}
+	else
+	{	
+			if(FileType.equals("AssetMaster"))
+			{
+				count=se.createSQLQuery("select count(DISTINCT a.assetId) from AssetMaster as a where a.assetId='"+name+"'");
+			}
+			if(FileType.equals("AssetAllocation"))
+			{
+				count=se.createSQLQuery("select count (DISTINCT a.assetId) from AssetMaster as a inner join AssetAllocation as b on(a.assetId=b.assetId) where b.assetId ='"+name+"'");
+			}
+				
+			if(FileType.equals("AssetSWInstallation"))
+			{
+				count=se.createSQLQuery("select count(DISTINCT a.assetId) from AssetMaster as a inner join AssetSWInstallation as b on(a.assetId=b.assetId) where b.assetId ='SPT-Cpu-0001'");
+
+			}
+			if(FileType.equals("SWLicenseMaster"))
+			{
+				count=se.createSQLQuery("select count(DISTINCT a.assetId) from AssetMaster as a inner join AssetSWInstallation as b on(a.assetId=b.assetId) inner join SWLicenseMaster as c on(b.sWLicenseNumber=c.sWLicenseNumber)  where c.sWLicenseNumber ='"+name+"' or c.sWLicenseStartDate='"+date+"'");
+			}
+			if(FileType.equals("InvoiceMaster"))
+			{
+				count=se.createSQLQuery("select count(DISTINCT a.assetId) from AssetMaster as a inner join AssetSWInstallation as b on(a.assetId=b.assetId)  inner join SWLicenseMaster as c on(b.sWLicenseNumber= c.sWLicenseNumber) inner join InvoiceMaster as d on(c.invoiceNumber=d.invoiceNumber)  where d.invoiceNumber ='' or d.invoiceDate='18-08-2015'");
+			}
+		
+		  count=se.createQuery("from AssetMaster where assetId='"+name+"'");
+		count=se.createQuery("from AssetMaster where "+FileType+" like '%"+name+"%'");
+	}
+	int no=count.list().size();
+	
+	return no;
+}
+
+
+
+@Override
+public List<AssetMaster> AssetMaster1(int jtStartIndex, int jtPageSize,
+		String jtSorting, String name,String FileType,String date) {
+	
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	Query count = null;
+	if(name == "" || name == null )
+	{
+		
+		count=se.createSQLQuery("select * from AssetMaster");/*from AssetMaster ORDER BY "+jtSorting)*/	
+
+	}
+	else
+	{
+		if(FileType.equals("AssetMaster"))
+		{
+			count=se.createSQLQuery("select a.* from AssetMaster as a where a.assetId='"+name+"' or a.assetPurchaseDate='"+date+"'");
+		}
+		else if(FileType.equals("AssetAllocation"))
+		{
+			count=se.createSQLQuery("select DISTINCT a.* from AssetMaster as a inner join AssetAllocation as b on(a.assetId=b.assetId) where b.assetId ='"+name+"'");
+		}
+		
+		else if(FileType.equals("AssetSWInstallation"))
+		{
+			count=se.createSQLQuery("select DISTINCT a.* from AssetMaster as a inner join AssetSWInstallation as b on(a.assetId=b.assetId) where b.assetId ='SPT-Cpu-0001'");
+		}
+	
+		else if(FileType.equals("SWLicenseMaster"))
+		{
+			count=se.createSQLQuery("select DISTINCT a.* from AssetMaster as a inner join AssetSWInstallation as b on(a.assetId=b.assetId) inner join SWLicenseMaster as c on(b.sWLicenseNumber=c.sWLicenseNumber)  where c.sWLicenseNumber ='"+name+"' or c.sWLicenseStartDate='"+date+"'");
+		}
+		
+		else if(FileType.equals("InvoiceMaster"))
+		{
+			count=se.createSQLQuery("select DISTINCT a.* from AssetMaster as a inner join AssetSWInstallation as b on(a.assetId=b.assetId)  inner join SWLicenseMaster as c on(b.sWLicenseNumber= c.sWLicenseNumber) inner join InvoiceMaster as d on(c.invoiceNumber=d.invoiceNumber)  where d.invoiceNumber ='"+name+"'or d.invoiceDate='"+date+"'");
+		}
+   }
+	count.setFirstResult(jtStartIndex);  
+	count.setMaxResults(jtPageSize);
+	List li= count.list();
+	AssetMaster asset;
+	List<AssetMaster> li1=new ArrayList<AssetMaster>();
+	Iterator itr=li.iterator();
+	while(itr.hasNext())
+	{
+		asset=new AssetMaster();
+		Object[] obj=(Object[]) itr.next();
+		asset.setAssetId(obj[0] != null ? obj[0].toString(): null);
+		asset.setInvoiceId(obj[18] != null ? obj[18].toString(): null);
+		asset.setAssetPurchaseDate(obj[12] != null ? obj[12].toString(): null);
+		asset.setAssetInsuranceDate(obj[5] != null ? obj[5].toString(): null);
+		asset.setCompanyId(obj[17] != null ? obj[17].toString(): null);
+		asset.setAssetWarranty(obj[16] != null ? (Integer)obj[16]: 0);
+		asset.setAssetModel(obj[6] != null ? obj[6].toString(): null);
+		asset.setAssetSerialNumber(obj[14] != null ? obj[14].toString(): null);
+		asset.setAssetStatus(obj[15] != null ? obj[15].toString(): null);
+		asset.setAssetAMCVendor(obj[1] != null ? obj[1].toString(): null);
+		li1.add(asset);
+		
+	}
+	
+	
+
+	
+	return li1;
+
+}
+
+
+
+@Override
+public List<AssetMaster> childAsset1(String assetId) 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	Query qu=se.createQuery("from AssetMaster where assetId='"+assetId+"'");
+	
+	
+	return qu.list();
+}
+
+
+
+@Override
+public boolean updateAssetMaster(AssetMaster asset) 
+{
+  try
+  {
+	  Session se=sessionfactory.openSession();
+	  se.beginTransaction();
+	  Query qu=se.createQuery("update AssetMaster set invoiceId=:invoiceid,  companyId=:companuid, assetPurchaseDate=:purchase, assetInsuranceDate=:insurance, assetWarranty=:Warranty, assetAMCVendor=:AMC, assetModel=:model, assetSerialNumber=:serial,assetStatus=:status where assetId=:assetid");
+	  qu.setString("invoiceid", asset.getInvoiceId());
+	  qu.setString("companuid",asset.getCompanyId());
+	  qu.setString("purchase",asset.getAssetPurchaseDate());
+	  qu.setString("insurance", asset.getAssetInsuranceDate());
+	  qu.setInteger("Warranty", asset.getAssetWarranty());
+	  qu.setString("AMC", asset.getAssetAMCVendor());
+	  qu.setString("model", asset.getAssetModel());
+	  qu.setString("serial", asset.getAssetSerialNumber());
+	  qu.setString("assetid", asset.getAssetId());
+	  qu.setString("status", asset.getAssetStatus());
+	  qu.executeUpdate();
+	  se.getTransaction().commit();
+	  se.close();
+	  return true;
+  }
+  catch(Exception e)
+  {
+	  System.out.println(e);
+	  return false;
+  }
+}
+
+
+
+@Override
+public boolean updatechildAssetMaster(AssetMaster asset, String assetId) 
+{
+	try
+	{
+		Session se=sessionfactory.openSession();
+		se.beginTransaction();
+		Query qu=se.createQuery("update AssetMaster set assetMotherBoardType=:motherBoard ,assetCPU=:cpu ,  assetRAM=:ram , assetHDD=:hdd , assetOS=:os ,  assetOSLicenseType=:ostype, assetOSLicenseNumber=:osnumber , assetOSLicenseKey=:oskey , assetGraphicsCard=:graphic where assetId=:assetid");
+		qu.setString("motherBoard", asset.getAssetMotherBoardType());
+		qu.setString("cpu",asset.getAssetCPU());
+		qu.setString("ram",asset.getAssetRAM());
+		qu.setString("hdd", asset.getAssetHDD());
+		qu.setString("os", asset.getAssetOS());
+		qu.setString("ostype", asset.getAssetOSLicenseType());
+		qu.setString("osnumber", asset.getAssetOSLicenseNumber());
+		qu.setString("oskey", asset.getAssetOSLicenseKey());
+		qu.setString("graphic", asset.getAssetGraphicsCard());
+		qu.setString("assetid", assetId);
+		qu.executeUpdate();
+		se.getTransaction().commit();
+		se.close();
+		return true;
+	}
+	catch(Exception e)
+	{
+		System.out.println(e);
+		return false;
+	}
+
+}
+
+
+
+@Override
+public List<AssetAllocation> childAsset2(String assetId) 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	Query qu=se.createQuery("from AssetAllocation where assetId1='"+assetId+"'");
+	
+	return qu.list();
+}
+
+
+
+@Override
+public boolean deletechild2(long employeeId) {
+	
+	try
+	{
+		Session se=sessionfactory.openSession();
+		se.beginTransaction();
+		Query qu=se.createQuery("delete AssetAllocation where employeeId="+employeeId);
+		qu.executeUpdate();
+		se.getTransaction().commit();
+		return true;
+	}
+	catch(Exception e)
+	{
+		System.out.println(e);
+		return false;
+	}
+}
+
+
+
+@Override
+public boolean updatechild2(AssetAllocation al, String assetId) {
+	try
+	{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	Query qu=se.createQuery("update AssetAllocation set deskLocation=:desk,userName=:user,projectName=:project,reportingManager=:report,userProfileId=:userp, hostName=:host where employeeId=:empid");
+	qu.setLong("empid", al.getEmployeeId());
+	qu.setString("desk", al.getDeskLocation());
+	qu.setString("user", al.getUserName());
+	qu.setString("project", al.getProjectName());
+	qu.setString("report", al.getReportingManager());
+	qu.setString("userp", al.getUserProfileId());
+	qu.setString("host", al.getHostName());
+	qu.executeUpdate();
+	se.getTransaction().commit();
+	return true;
+	}
+	catch(Exception e)
+	{
+		System.out.println(e);
+		return false;
+	}
+}
+
+
+
+@Override
+public List callSpecifictable() 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	Query qu=se.createQuery("SELECT TABLE_NAME  FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND  TABLE_NAME = 'AssetAllocation' OR TABLE_NAME='AssetMaster' OR TABLE_NAME='InvoiceMaster' OR TABLE_NAME='SWLicenseMaster' OR TABLE_NAME='AssetSWInstallation' AND TABLE_CATALOG='AssetFinal'");
+	
+	return qu.list();
+}
+
+
+
+@Override
+public List<AssetMaster> checkAssetd(String assetid) 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	Query qu=se.createQuery("from AssetMaster where assetId='"+assetid+"'");
+	
+	
+	return qu.list();
+}
+
+
+
+@Override
+public List<AssetAllocation> checkAssetallocation(String assetId) 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	Query qu=se.createQuery("from AssetAllocation where assetId1='"+assetId+"'");
+	return qu.list();
+}
+
+
+
+@Override
+public List<InvoiceMaster> checkinvoiceno(Long invoiceId) 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	Query qu=se.createQuery("from InvoiceMaster where invoiceNo="+invoiceId);
+	
+	return qu.list();
+}
+
+
+
+@Override
+public List<AssetSWInstallation> checkswinstall(String AssetId) 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	Query qu=se.createQuery("from AssetSWInstallation where  assetId2='"+AssetId+"'");
+	
+	return qu.list();
+}
+
+
+
+@Override
+public String assetIdIsDeleted(String assetId) 
+{
+	int j=0;String s1;
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	try
+	{			
+		    Query qu7=se.createQuery("select count(am.assetId) from AssetMaster as am where am.assetId='"+assetId+"'");
+			Long i=(Long) qu7.uniqueResult();
+			if(i == 1)
+			{
+					
+				Query qu2=se.createQuery("delete AssetSWInstallation where assetId2='"+assetId+"'");
+		 		qu2.executeUpdate();
+		 		String[] s2 = new String[3];
+				 for (String retval: assetId.split("-"))
+				 {
+			         s2[j]=retval;
+			         j++;
+			     }
+				 s1=s2[1];
+				/*Query qu11=se.createQuery("from AssetAllocation where assetId1='"+assetId+"'");    To increase assetUser then while delete also it has to decrease for decrease this statment is used
+				int total=qu11.list().size();*/
+				Query qu1=se.createQuery("from AssetAllocation where assetId1='"+assetId+"'"); // here we have to write (AssetStock) count decrease of assetused
+		 		int k=qu1.list().size();
+		 		if(k>0)
+		 		{
+		 			Query qu11=se.createQuery("delete AssetAllocation where assetId1='"+assetId+"'");
+		 			qu11.executeUpdate();
+		 			Query qu33=se.createQuery("update AssetStock set assetUsed=assetUsed-1 where assetType='"+s1+"'");
+					qu33.executeUpdate();
+		 		}
+				Query qu=se.createQuery("delete AssetMaster where assetId='"+assetId+"'"); // here we have to write (AssetStock) count decrease of assetTotal 
+				qu.executeUpdate();
+				Query qu3=se.createQuery("update AssetStock set assetTotal=assetTotal-1 where assetType='"+s1+"'");
+				qu3.executeUpdate();
+				se.getTransaction().commit();
+				
+				
+				return "true";
+				
+		    }
+			else
+			{
+				se.getTransaction().rollback();
+				return "false";
+			}
+	
+	}
+	catch(Exception e)
+	{
+		se.getTransaction().rollback();
+		System.out.println(e);
+		return "false";
+	}
+	
+}
+
+
+
+@Override
+public String assetIdIsUpdated(AssetMaster am) 
+{
+	try
+	{
+		Session se=sessionfactory.openSession();
+		se.beginTransaction();
+		se.update(am);
+		se.getTransaction().commit();
+		return "success";
+	}
+	catch(Exception e)
+	{
+		System.out.println(e);
+		return "fail";
+	}
+}
+
+
+
+@Override
+public String allocationDeleted(String assetId,long empid) 
+{
+	int j=0;String s;
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	try
+	{
+		
+		Query qu1=se.createQuery("from AssetAllocation where assetId1='"+assetId+"'");
+		int i=qu1.list().size();
+		if(i > 0)
+		{
+				String[] s2 = new String[3];
+				for (String retval: assetId.split("-"))
+				{
+					s2[j]=retval;
+					j++;
+				}
+			    s=s2[1];
+			if(i == 1)
+			{
+				Query qu2=se.createQuery("update AssetStock set assetUsed=assetUsed-1 where assetType='"+s+"'");
+				qu2.executeUpdate();
+			}
+			Query qu=se.createQuery("delete AssetAllocation where assetId1='"+assetId+"' and employeeId="+empid);
+			qu.executeUpdate();
+			se.getTransaction().commit();
+			return "true";
+		}
+		else
+		{
+			return "false";
+		}
+	}
+	catch(Exception e)
+	{
+		se.getTransaction().rollback();
+		return "false";
+	}
+	
+}
+
+
+
+
+@Override
+public String allocationUpdate(AssetAllocation all) 
+{
+		try
+		{
+			Session se=sessionfactory.openSession();
+			se.beginTransaction();
+			Query qu=se.createQuery("Select srno from AssetAllocation where employeeId="+all.getEmployeeId()+"and assetId1='"+all.getAssetId1().getAssetId()+"' and deskLocation='"+all.getDeskLocation()+"'");
+			Long i=(Long) qu.uniqueResult();
+			all.setSrno(i);
+			se.update(all);
+			se.getTransaction().commit();
+			return "success";
+		}
+		catch(Exception e)
+		{
+			System.out.println(e);
+			return "fail";
+		}
+}
+
+
+
+@Override
+public String invoiceDeleted(Long invoiceId) 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	try
+	{	
+// you have to delete the SWLicenseMaster and AssetSWIntallation 		
+		Query qu=se.createQuery("from InvoiceMaster where invoiceNo="+invoiceId);
+		int i=qu.list().size();
+		if(i == 1)
+		{
+			Query qu1=se.createQuery("delete InvoiceMaster where invoiceNo="+invoiceId);
+			qu1.executeUpdate();
+			se.getTransaction().commit();
+			return "true";
+		}
+		else
+		{
+			return "false1";
+		}
+	}
+	catch(Exception e)
+	{
+		return "false";
+	}
+}
+
+
+
+@Override
+public String invoiceUpdate(InvoiceMaster all) 
+{
+	try
+	{
+		Session se=sessionfactory.openSession();
+		se.beginTransaction();
+		se.update(all);
+		se.getTransaction().commit();
+		return "success";
+	}
+	catch(Exception e)
+	{
+		System.out.println(e);
+		return "fail";
+	}
+}
+
+
+
+@Override
+public String licenseDeleted(String licenseNo) 
+{	
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	try
+	{	
+		// you have to delete the SWLicenseMaster and AssetSWIntallation 		
+		Query qu=se.createQuery("from SWLicenseMaster where licenseNo='"+licenseNo+"'");
+		int i=qu.list().size();
+		if(i == 1)
+		{
+			Query qu1=se.createQuery("delete AssetSWInstallation where licenseNo='"+licenseNo+"'");
+			qu1.executeUpdate();
+			Query qu2=se.createQuery("delete SWLicenseMaster where licenseNo='"+licenseNo+"'");
+			qu2.executeUpdate();
+			se.getTransaction().commit();
+			return "true";
+		}
+		else
+		{
+			return "false1";
+		}
+	}
+	catch(Exception e)
+	{
+		se.getTransaction().rollback();
+		return "false";
+	}
+}
+
+
+
+@Override
+public List<SWLicenseMaster> checklicense(String licenseNo) 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	Query qu=se.createQuery("select sw from SWLicenseMaster as sw where sw.licenseNo='"+licenseNo+"'");
+	
+	return qu.list();
+}
+
+
+
+@Override
+public String licenseUpdate(SWLicenseMaster slm, Long invocieNo) 
+{
+	
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	try
+	{
+		Query qu2=se.createQuery("from SWLicenseMaster where licenseNo='"+slm.getLicenseNo()+"'");
+		int i1=qu2.list().size();
+		if(i1==1)
+		{
+			Query qu=se.createQuery("from InvoiceMaster where invoiceNo="+invocieNo);
+			int i=qu.list().size();
+			if(i == 1)
+			{	
+				Query qu1=se.createQuery("update SWLicenseMaster set companyId='"+slm.getCompanyId()+"', invoiceNo="+slm.invoiceNo.getInvoiceNo()+", sWLicenseDescription='"+slm.getsWLicenseDescription()+"', sWLicenseExpiryDate='"+slm.getsWLicenseExpiryDate()+"', sWLicenseKey='"+slm.getsWLicenseKey()+"', sWLicenseStartDate='"+slm.getsWLicenseStartDate()+"', sWLicenseType='"+slm.getsWLicenseType()+"' where licenseNo='"+slm.getLicenseNo()+"'");
+				qu1.executeUpdate();
+				se.getTransaction().commit();
+				return "success";
+			}
+			else
+			{
+				return "notpresent";
+			}
+		}
+		else
+		{
+			return "licenseNotPresent";
+		}
+	}
+	catch(Exception e)
+	{
+			se.getTransaction().rollback();
+			return "fail";
+	}
+	
+	
+}
+
+
+
+@Override
+public String SWLicenseDeleted(String licenseNo, String assetId) 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	try
+	{	
+// you have to delete the SWLicenseMaster and AssetSWIntallation 		
+		Query qu=se.createQuery("from AssetSWInstallation where assetId2='"+assetId+"' and licenseNo='"+licenseNo+"'");
+		int i=qu.list().size();
+		if(i == 1)
+		{
+			Query qu1=se.createQuery("delete AssetSWInstallation where assetId2='"+assetId+"' and licenseNo='"+licenseNo+"'");
+			qu1.executeUpdate();
+			se.getTransaction().commit();
+			return "true";
+		}
+		else
+		{
+			return "false1";
+		}
+	}
+	catch(Exception e)
+	{
+		return "false";
+	}
+}
+
+
+
+@Override
+public String SWlicenseUpdate(AssetSWInstallation asi) 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	try
+	{
+		Query qu2=se.createQuery("from AssetSWInstallation where assetId2='"+asi.getAssetId2().getAssetId()+"' and licenseNo='"+asi.getLicenseNo().getLicenseNo()+"'");
+		int i1=qu2.list().size();
+		if(i1==1)
+		{
+			Query qu1=se.createQuery("update AssetSWInstallation set sWVersion='"+asi.getsWVersion()+"',sWDescription='"+asi.getsWDescription()+"' where assetId2='"+asi.getAssetId2().getAssetId()+"'and licenseNo='"+asi.getLicenseNo().getLicenseNo()+"'");
+			qu1.executeUpdate();
+			se.getTransaction().commit();
+			return "success";
+		}
+		else
+		{
+			return "notpresent";
+		}
+	}
+	catch(Exception e)
+	{
+			se.getTransaction().rollback();
+			return "fail";
+	}
+}
+
+
+
+@Override
+public List<UserProfileLookup> userprofile() 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	Query qu=se.createQuery("from UserProfileLookup");
+	return qu.list();
+}
+
+
+
+@Override
+public List<AssetStock> assetstock() 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	Query qu=se.createQuery("from AssetStock");
+	return qu.list();
+}
+
+
+
+@Override
+public String lookGet(String tableName, String lookup, String columnName,String columnName1) 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	
+	try
+	{
+		Query qu=se.createQuery("select "+columnName1+" from "+tableName+" where "+columnName+" = '"+lookup+"'");
+		String s=(String) qu.uniqueResult();
+		return s;
+	}
+	catch(Exception e)
+	{
+		return null;
+	}
+	
+}
+
+
+
+@Override
+public String lookupUpdate(String tableName, String lookup, String lookupdesc,String columnName,String columnName1) 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	try
+	{
+		Query qu=se.createQuery("update "+tableName+" set "+columnName1+"='"+lookupdesc+"' where "+columnName+"='"+lookup+"'");
+		int i=qu.executeUpdate();
+		se.getTransaction().commit();
+		if(i==1)
+		{
+			return "success";
+		}
+		else
+		{
+			return "error";
+		}
+	}
+	catch(Exception e)
+	{
+		System.out.println(e);
+		return "error";
+	}
+	
+}
+
+
+
+@Override
+public String lookupDelete(String tableName, String lookupid, String lookup,String columnName) 
+{
+	Session se=sessionfactory.openSession();
+	se.beginTransaction();
+	try
+	{
+		Query qu=se.createQuery("delete "+tableName+" where "+columnName+"='"+lookup+"'");
+		int i=qu.executeUpdate();
+		System.out.println("the value of i is"+i);
+		se.getTransaction().commit();
+		if(i==1)
+		{
+			return "success";
+		}
+		else
+		{
+			return "fail";
+		}	
+	}
+	catch(Exception e)
+	{
+		System.out.println(e);
+		return "fail";
+	}
+	
+}
+
+
+
+
+
+
+
+	
+	
+}
+
