@@ -1,0 +1,96 @@
+package com.assets.database;
+
+import java.util.List;
+
+
+
+
+
+
+import com.assets.model.AssetAllocation;
+import com.assets.model.AssetMaster;
+import com.assets.model.AssetSWInstallation;
+import com.assets.model.AssetStatusLookup;
+import com.assets.model.AssetStock;
+import com.assets.model.AssetTypeLookup;
+import com.assets.model.CompanyLookup;
+import com.assets.model.InvoiceMaster;
+import com.assets.model.InvoiceStatusLookup;
+import com.assets.model.LoginDetails;
+import com.assets.model.SWLicenseMaster;
+import com.assets.model.SWLicenseTypeLookup;
+import com.assets.model.UserProfileLookup;
+
+
+public interface Operations {
+	
+	
+	
+public List loginCheck(String username,String password);//To check user is Valid or not
+public boolean checkChangePasswordDetails(String username,String password,String email); //To change the password
+public String checkuser(String username);//check username present or not
+public String Lookup1(String companyId,String companydesc);//companylookupdata		
+public String Lookup2(String assetid,String assetdesc);//AssetStatusLookup
+public String SaveData(AssetMaster re);//to save the AssetMaster
+public String SaveAllocation(AssetAllocation re1,String assetId1);//to save the Allocation
+public String saveLookup(String lookupvalue,String lookupid,String lookupdesc);//To save Lookup data
+public String SWInstallation(AssetSWInstallation re1,String assetId2,String licenseNo);//To save AssetSWInstallation Data
+public String SWLicenseMaster1(SWLicenseMaster re1,Long invoiceNo);//To save LicenseMaster
+public String InvoiceMasterEntry(InvoiceMaster re1);//To save InvoiceMaster
+
+
+public List<CompanyLookup>  CompanyNames();//company Lookup table
+public List<SWLicenseTypeLookup> licenseTypes();//types of S/w License
+public List<AssetStatusLookup> AssetStatus();//Assets Status
+public List<InvoiceStatusLookup> invoiceType();//invoice Type
+public List<AssetTypeLookup> AssetType();//Asset Type Lookup
+public List<UserProfileLookup> userprofile();//UserProfile
+
+
+ //-----------------------------------------------------JTable----------------------------------------//
+public int totalAssetCount(String name,String FileType,String date);//
+public List<AssetMaster> AssetMaster1(int jtStartIndex,int jtPageSize,String jtSorting,String name,String FileType,String date);
+public List<AssetMaster> childAsset1(String assetId);
+public boolean updateAssetMaster(AssetMaster asset);
+public boolean updatechildAssetMaster(AssetMaster asset,String assetId);
+public List<AssetAllocation> childAsset2(String assetId);//for allocated Data
+public boolean deletechild2(long employeeId);//to delete child employeeId
+public boolean updatechild2(AssetAllocation al,String assetId);//to update child2 (Asset Allocation)
+
+
+public List callSpecifictable(); //To call Specific table 
+
+
+//19-08-2015
+public List<AssetMaster> checkAssetd(String assetid);
+public List<AssetAllocation> checkAssetallocation(String assetId);
+public List<InvoiceMaster> checkinvoiceno(Long invoiceId);
+public List<AssetSWInstallation> checkswinstall(String AssetId);
+
+//21-08-2015
+public String assetIdIsDeleted(String assetId);
+public String assetIdIsUpdated(AssetMaster am);
+public String allocationDeleted(String assetId,long empid);	//This is use to Delete the Allocation
+public String allocationUpdate(AssetAllocation all);
+
+//invoice
+public String invoiceDeleted(Long invoiceId);
+public String invoiceUpdate(InvoiceMaster all);
+//License Master
+public List<SWLicenseMaster> checklicense(String licenseNo);
+public String licenseDeleted(String licenseNo);
+public String licenseUpdate(SWLicenseMaster slm,Long invocieNo);
+//SWLicense 
+public String SWLicenseDeleted(String licenseNo,String assetId);
+public String SWlicenseUpdate(AssetSWInstallation asi);
+
+//31-08-2015
+public List<AssetStock> assetstock();
+
+//LookUp 
+public String lookGet(String tableName,String lookup,String columnName,String columnName1);
+public String lookupUpdate(String tableName,String lookup,String lookupdesc,String columnName,String columnName1);
+public String lookupDelete(String tableName,String lookupid,String lookup,String columnName);
+
+
+}
